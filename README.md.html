@@ -1,0 +1,115 @@
+<h1>Quick Guide to Embedding Jolecule</h1>
+<p>Jolecule is a HTML5 viewer for protein molecules. It is written in Javascript and is designed to be deployed on web pages. Jolecule provides a plugin mode that is meant to work in embedded <code>&lt;div&gt;</code>s in an arbitrary web page. This requires that the protein data is prepared in a way that can be loaded into the javascript module, as well as the protein view data, which will be discussed in the next section.
+</p>
+
+<h2>Concept of views</h2>
+<p>One key concept in Jolecule revolves around <code>views</code> of the protein molecule. A <code>views</code> encapsulates a specific camera angle of the protein, the magnification, slab settings, and visual decorations. The <code>views</code> has been abstracted into a simple dictionary containing about 20 key-value pairs compatible with JSON (each value is either a string, boolean, int, or float). Jolecule will convert such a dictionary into a working View.
+</p>
+<p>If you want to generate views, go to jolecule.appspot.com and use this url: http://jolecule.appspot.com/ajax/load_views_of_pdb/[whatever-the-pdb-id-of-your-protein]. Tools to generate the views will be added.
+</p>
+
+<h2>A DataServer object</h2>
+<p>The way that Jolecule is written is that the data loading has been abstracted out into a DataServer object. On initialization, a DataServer will be requested by the plugin. The DataServer can get the data from anywhere - fetched from a server, built up from scratch in the web-page, generated from the PDB website, or directly encoded in the web-page. A working DataServer has several methods that is called by the Jolecule plugin, which is expressedly used to fetch the coordinates of the protein, and its associated views.
+</p>
+<p>In the current <code>js/dataserver.js</code> javascript file, two DataServer objects are included: <code>RcsbPdbDataServer</code> which fetches a PDB file from the online RCSB PDB database but no views are provided; and <code>ExampleEmbededDataServer</code> which has a hemoglobin structure encoded directly in the javascript file, and a list of views is also encoded.
+</p>
+<p>The DataServer objects must implement 4 methods: 
+</p>
+<ol>
+ <li><p><code>get_protein_data</code> is the function that generates or fetches the protein_data dictionary. The <code>protein_data</code> dictionary has three fields:
+</p>
+<ul>
+ <li>
+     'pdb_id': the name or ID of the protein, this is inserted into every view that is generated for later identification of a view with a pdb.
+ </li>
+
+ <li>
+     'pdb_atom_lines': a list of lines of a PDB file. The PDB file must be inserted into a list form because Javascript cannot handle mulit-line strings well. In the <code>dataserver.js</code> file, two different DataServer objects are given. One fetches the PDB file from the RCSB PDB server, and then splits the line, whilst the other provides a pre-split PDB file encoded directly in javascript.
+ </li>
+
+ <li>
+     'default_text': the description text shown that accompanies the default view of a molecule
+ </li>
+</ul>
+
+ </li>
+
+ <li><p><code>get_protein_views</code> returns a list of views. In the <code>EmbeddedDataServer</code> example, the views are put in there. If you want to generate your own. 
+</p>
+
+ </li>
+
+ <li><p><code>save_protein_view</code> talks to your server, and will depend how you want to structure the information. Currently is a dummy function.
+</p>
+
+ </li>
+
+ <li><p><code>delete_protein_view</code> same as above.
+</p>
+
+ </li>
+</ol>
+
+<h2>Install steps</h2>
+<p>Once a suitable DataServer object to fetch data has been chosen and/or written, to connect up a Jolecule window in a web-page (an example is given in <code>embed.html</code>:
+</p>
+
+<h4>1. Include a tag</h4>
+<p><code>&lt;div&gt;</code> element with a set ID tag: <div id="jolecule1"></div>
+</p>
+
+<h4>2. Header for javascript files</h4>
+<p>Inclusion of all the jolecule javascript files in the <code>&lt;head&gt;</code> of the HTML file: 
+</p>
+<p><code></code>
+</p>
+<pre><code>&lt;link rel="stylesheet" type="text/css" href="static/mobile.css" /&gt;
+
+&lt;script type="text/javascript" src="js/jquery.js"&gt;&lt;/script&gt;
+&lt;script type="text/javascript" src="js/jquery.scrollTo.js"&gt;&lt;/script&gt;
+
+&lt;script type="text/javascript" src="js/util.js"&gt;&lt;/script&gt; 
+&lt;script type="text/javascript" src="js/v3.js"&gt;&lt;/script&gt; 
+&lt;script type="text/javascript" src="js/canvaswidget.js"&gt;&lt;/script&gt; 
+&lt;script type="text/javascript" src="js/protein.js"&gt;&lt;/script&gt; 
+&lt;script type="text/javascript" src="js/proteindisplay.js"&gt;&lt;/script&gt; 
+&lt;script type="text/javascript" src="js/embedjolecule.js"&gt;&lt;/script&gt; 
+&lt;script type="text/javascript" src="js/dataserver.js"&gt;&lt;/script&gt;
+</code></pre><p><code></code>
+</p>
+<p>To deploy properly, you will have to have edited the <code>js/dataserver.js</code> to suit your protein.
+</p>
+
+<h4>3. Triggering code</h4>
+<p>A live piece of script that will initialize the embeded jolecule window and link it to the div element:
+</p>
+<p><code></code>
+</p>
+<pre><code>&lt;script&gt;
+  register_global_animation_loop(
+    new EmbedJolecule(
+      '1bfe', // pdb_id
+      '',  // view_id
+      '#mobile-body2', // html tag, notice the # character meaning ID
+      new ExampleEmbededDataServer(), // type of data server
+      130, // height of the annotation text area
+      'Loading PDB...', // Loading msg
+      'Failed to load PDB.', // Loading failure msg
+      'Default view of PDB structure.' // Default PDB view text
+    )
+  );
+&lt;/script&gt;
+</code></pre><p><code></code>
+</p>
+<p>The way this code works is that it creates a new EmbedJolecule object, which it links to the relevant <code>&lt;div&gt;</code> tag in the same page. The object itself must be registered with the function <code>register_global_animation_loop</code> function. This puts the EmbedJolecule object into a single global animation loop for the web-page.
+</p>
+<p>Multiple EmbedJolecule objects can be embedded in the page and they are all all tracked with the single animation loop.
+</p>
+<p>Future options will be added such as choosing the view, turning off text window etc.
+</p>
+
+<h2>Styling the page</h2>
+<p>If you're not happy with the look of the chrome around the plugin, you can change it by changing the CSS file in <code>static/mobile.css</code>. I'll leave it for you to figure out what goes with what. 
+</p>
+<p>If you really need to check out the embed plugin, I suggest you load your HTML page in CHROME, and go the menu item <code>View -&gt; Developer -&gt; Developer Tools</code>. Then in the window that pops up, click on the <code>Elements</code> tab. From there you can scroll through all the elements and read off the ID of each DOM element in order to track down the relevant CSS element to change.
+</p>
